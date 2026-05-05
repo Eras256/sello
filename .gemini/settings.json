@@ -1,0 +1,9 @@
+{
+  "context": [
+    "DESIGN.md",
+    "README.md",
+    "package.json",
+    "pnpm-workspace.yaml",
+    ".env.example"
+  ]
+}

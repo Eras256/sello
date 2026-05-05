@@ -1,0 +1,30 @@
+{
+  "name": "@sello/sdk",
+  "version": "0.1.0",
+  "description": "SELLO SDK — Verify once, access everything. Compliance infrastructure for Stellar.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^15.0.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0"
+  },
+  "keywords": ["stellar", "soroban", "kyc", "compliance", "attestation", "sello"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sello-protocol/sello"
+  }
+}

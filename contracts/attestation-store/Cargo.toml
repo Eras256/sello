@@ -1,0 +1,19 @@
+[package]
+name = "sello-attestation-store"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "SELLO AttestationStore — On-chain KYC/KYB attestation credential storage for Stellar"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { version = "25.3.1" }
+
+[dev-dependencies]
+soroban-sdk = { version = "25.3.1", features = ["testutils"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]

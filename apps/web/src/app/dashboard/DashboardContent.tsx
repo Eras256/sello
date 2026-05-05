@@ -1,0 +1,54 @@
+'use client';
+import { useT } from '@/i18n';
+
+export default function DashboardContent() {
+  const t = useT();
+  const stats = [
+    { label: t('dash.totalVerif'), value: '0', icon: '🔐' },
+    { label: t('dash.activeAttest'), value: '0', icon: '✅' },
+    { label: t('dash.passRate'), value: '—', icon: '📊' },
+    { label: t('dash.avgTime'), value: '—', icon: '⏱' },
+  ];
+
+  return (
+    <section className="section" style={{ minHeight: 'calc(100vh - var(--navbar-height))' }}>
+      <div className="container">
+        <h1 className="section-title">{t('dash.title')}</h1>
+        <p className="section-subtitle" style={{ marginBottom: '48px' }}>{t('dash.subtitle')}</p>
+        <div className="grid-4" style={{ marginBottom: '48px' }}>
+          {stats.map((s) => (
+            <div key={s.label} className="glass-card" style={{ padding: '24px' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>{s.icon}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>{s.value}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid-2">
+          <div className="glass-card" style={{ padding: '32px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '16px' }}>{t('dash.apiKey')}</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input className="input" type="password" value="sk_test_•••••••••••••••••••" readOnly id="api-key-input" />
+              <button className="btn btn-secondary" id="copy-api-key-btn">{t('dash.copy')}</button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '12px' }}>{t('dash.apiKeyDesc')}</p>
+          </div>
+          <div className="glass-card" style={{ padding: '32px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '16px' }}>{t('dash.webhook')}</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input className="input" type="url" placeholder={t('dash.webhookPlaceholder')} id="webhook-url-input" />
+              <button className="btn btn-primary" id="save-webhook-btn">{t('dash.save')}</button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '12px' }}>{t('dash.webhookDesc')}</p>
+          </div>
+        </div>
+        <div style={{ marginTop: '48px' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '24px' }}>{t('dash.recentTitle')}</h3>
+          <div className="glass-card" style={{ padding: '48px', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-muted)' }}>{t('dash.recentEmpty')}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
