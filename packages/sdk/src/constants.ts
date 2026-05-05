@@ -14,6 +14,12 @@ export const TESTNET_TIER_REGISTRY = 'CDOGGHMW4TKO7IUVI3FVZ5IWTERSUJPQOBQP3SEHL3
 /** TierRegistry contract address on Stellar Mainnet */
 export const MAINNET_TIER_REGISTRY = '';
 
+/** AgentRegistry (KYA) contract address on Stellar Testnet */
+export const TESTNET_AGENT_REGISTRY = 'CDL4BCLA77FQBHQCIPXHQ5ONEMBHAOLEQCAIB4SCADBDWKLMISWV7HSF';
+
+/** AgentRegistry (KYA) contract address on Stellar Mainnet */
+export const MAINNET_AGENT_REGISTRY = '';
+
 /** Default Soroban RPC URLs by network */
 export const RPC_URLS: Record<string, string> = {
   testnet: 'https://soroban-testnet.stellar.org',

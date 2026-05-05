@@ -1150,6 +1150,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sello-agent-registry"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "sello-attestation-store"
 version = "0.1.0"
 dependencies = [

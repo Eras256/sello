@@ -1,5 +1,5 @@
 [workspace]
-members = ["attestation-store", "tier-registry"]
+members = ["attestation-store", "tier-registry", "agent-registry"]
 resolver = "2"
 
 [profile.release]
