@@ -125,9 +125,8 @@ async function main() {
   try {
     adminAddress = run(`stellar keys address --source "${SECRET}"`);
   } catch {
-    // Fallback: derive from secret key using stellar-sdk
-    const { Keypair } = await import('@stellar/stellar-sdk');
-    adminAddress = Keypair.fromSecret(SECRET).publicKey();
+    console.error('  ❌ Could not resolve deployer address. Ensure stellar-cli is installed.');
+    process.exit(1);
   }
   console.log(`  Admin: ${adminAddress}\n`);
 

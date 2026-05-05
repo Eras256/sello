@@ -16,16 +16,13 @@ export default function DashboardContent() {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      // Fetch total counts via a lightweight API call
-      // The API uses SelloClient which queries the real contract
-      const res = await fetch('/api/attestation/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+      const res = await fetch('/api/stats');
       if (res.ok) {
         const data = await res.json();
-        // If we got a real response, the contract is live
         setMetrics({
           totalMinted: data.totalMinted ?? 0,
           totalRevoked: data.totalRevoked ?? 0,
-          activeAttestations: (data.totalMinted ?? 0) - (data.totalRevoked ?? 0),
+          activeAttestations: data.activeAttestations ?? 0,
           passRate: data.totalMinted > 0
             ? `${Math.round(((data.totalMinted - data.totalRevoked) / data.totalMinted) * 100)}%`
             : '—',

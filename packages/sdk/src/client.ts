@@ -83,20 +83,21 @@ export class SelloClient {
     try {
       const contract = new StellarSdk.Contract(this.attestationContractId);
 
-      // Build the transaction to call verify()
-      const account = await this.server.getAccount(address).catch(() => {
-        // If account doesn't exist, use a dummy source
-        return new StellarSdk.Account(address, '0');
-      });
+      // Use a constant dummy account for read-only simulation
+      // (source account doesn't matter for simulateTransaction)
+      const dummyAccount = new StellarSdk.Account(
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+        '0',
+      );
 
-      const tx = new StellarSdk.TransactionBuilder(account, {
+      const tx = new StellarSdk.TransactionBuilder(dummyAccount, {
         fee: '100',
         networkPassphrase: this.networkPassphrase,
       })
         .addOperation(
           contract.call(
             'verify',
-            StellarSdk.nativeToScVal(address, { type: 'address' })
+            new StellarSdk.Address(address).toScVal(),
           )
         )
         .setTimeout(30)
@@ -284,6 +285,59 @@ export class SelloClient {
     const config = staticTiers[tier];
     if (!config) throw new Error(`Invalid tier: ${tier}. Must be 1-4.`);
     return config;
+  }
+
+  /**
+   * Get protocol statistics from the AttestationStore contract.
+   *
+   * @returns Total minted, total revoked, and active count
+   */
+  async getStats(): Promise<{ totalMinted: number; totalRevoked: number; active: number }> {
+    try {
+      const contract = new StellarSdk.Contract(this.attestationContractId);
+      const dummyAccount = new StellarSdk.Account(
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+        '0',
+      );
+
+      // Call total_minted
+      const txMinted = new StellarSdk.TransactionBuilder(dummyAccount, {
+        fee: '100',
+        networkPassphrase: this.networkPassphrase,
+      })
+        .addOperation(contract.call('total_minted'))
+        .setTimeout(30)
+        .build();
+
+      const simMinted = await this.server.simulateTransaction(txMinted);
+      let totalMinted = 0;
+      if (StellarSdk.rpc.Api.isSimulationSuccess(simMinted) && simMinted.result) {
+        totalMinted = Number(StellarSdk.scValToNative(simMinted.result.retval));
+      }
+
+      // Call total_revoked
+      const txRevoked = new StellarSdk.TransactionBuilder(dummyAccount, {
+        fee: '100',
+        networkPassphrase: this.networkPassphrase,
+      })
+        .addOperation(contract.call('total_revoked'))
+        .setTimeout(30)
+        .build();
+
+      const simRevoked = await this.server.simulateTransaction(txRevoked);
+      let totalRevoked = 0;
+      if (StellarSdk.rpc.Api.isSimulationSuccess(simRevoked) && simRevoked.result) {
+        totalRevoked = Number(StellarSdk.scValToNative(simRevoked.result.retval));
+      }
+
+      return {
+        totalMinted,
+        totalRevoked,
+        active: totalMinted - totalRevoked,
+      };
+    } catch {
+      return { totalMinted: 0, totalRevoked: 0, active: 0 };
+    }
   }
 
   /**
