@@ -3,13 +3,13 @@
  */
 
 /** AttestationStore contract address on Stellar Testnet */
-export const TESTNET_ATTESTATION_STORE = '';
+export const TESTNET_ATTESTATION_STORE = 'CBFQHNPKRBBLZR4C34GJQ2DAOMABHJRARGP6SVZCPXTRIZQXTDLMVFOR';
 
 /** AttestationStore contract address on Stellar Mainnet */
 export const MAINNET_ATTESTATION_STORE = '';
 
 /** TierRegistry contract address on Stellar Testnet */
-export const TESTNET_TIER_REGISTRY = '';
+export const TESTNET_TIER_REGISTRY = 'CDOGGHMW4TKO7IUVI3FVZ5IWTERSUJPQOBQP3SEHL3J2PA6IQUI6KL76';
 
 /** TierRegistry contract address on Stellar Mainnet */
 export const MAINNET_TIER_REGISTRY = '';

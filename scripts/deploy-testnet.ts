@@ -76,11 +76,11 @@ async function main() {
 
   const rootDir = path.resolve(__dirname, '..');
   const contractsDir = path.join(rootDir, 'contracts');
-  const wasmDir = path.join(contractsDir, 'target', 'wasm32-unknown-unknown', 'release');
+  const wasmDir = path.join(contractsDir, 'target', 'wasm32v1-none', 'release');
 
   // ── Step 1: Build contracts ──────────────────────────────────
   console.log('── Step 1: Building smart contracts ─────────────────');
-  run('cargo build --release --target wasm32-unknown-unknown', contractsDir);
+  run('cargo build --release --target wasm32v1-none', contractsDir);
   console.log('  ✅ Contracts compiled\n');
 
   // Verify WASM files exist
