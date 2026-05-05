@@ -13,6 +13,7 @@
     "test": "pnpm -r test",
     "test:contracts": "cd contracts && cargo test",
     "test:e2e": "pnpm --filter web test:e2e",
+    "deploy:testnet": "npx tsx scripts/deploy-testnet.ts",
     "seed:testnet": "npx tsx scripts/seed-testnet.ts",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
@@ -24,7 +25,9 @@
     "pnpm": ">=9.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "next": "^16.2.4",
+    "tsx": "^4.19.0",
     "vercel": "^50.1.6"
   }
 }

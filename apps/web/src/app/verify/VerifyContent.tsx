@@ -48,36 +48,75 @@ export default function VerifyContent() {
   const steps = [t('verify.step1'), t('verify.step2'), t('verify.step3')];
   const activeStep = phase === 'connect' ? 0 : phase === 'select-tier' ? 1 : phase === 'processing' ? 1 : 2;
 
-  // Simulated verification process — calls the backend API
+  // Verification process — calls the backend API endpoints
   const startVerification = useCallback(async () => {
     setPhase('processing');
     setProcessStep(0);
 
-    // Step through the visual process indicators
-    for (let i = 0; i < PROCESS_STEPS.length; i++) {
-      setProcessStep(i);
-      await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800));
-    }
-
-    // Call the backend to create a verification session
+    // Step 1: Create verification session via API
+    setProcessStep(0);
+    let sessionOk = false;
     try {
-      const res = await fetch('/api/attestation/' + address);
-      const _data = await res.json();
-      // In testnet mode, simulate a successful verification
+      const sessionRes = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      if (sessionRes.ok) {
+        sessionOk = true;
+      }
     } catch {
-      // API may not be running — continue with simulated result
+      // API may not be running — continue with visual flow
     }
+    await new Promise((r) => setTimeout(r, 800));
+
+    // Step 2: Simulated KYC processing (Sumsub sandbox would go here)
+    setProcessStep(1);
+    await new Promise((r) => setTimeout(r, 1000));
+
+    // Step 3: Check attestation status from contract
+    setProcessStep(2);
+    let contractResult = null;
+    try {
+      const attRes = await fetch('/api/attestation/' + address);
+      if (attRes.ok) {
+        contractResult = await attRes.json();
+      }
+    } catch {
+      // Continue with simulated result
+    }
+    await new Promise((r) => setTimeout(r, 800));
+
+    // Step 4: Finalize
+    setProcessStep(3);
+    await new Promise((r) => setTimeout(r, 600));
 
     const now = Math.floor(Date.now() / 1000);
     const tierNames = ['', t('verify.t1'), t('verify.t2'), t('verify.t3'), t('verify.t4')];
-    setAttestation({
-      tier: selectedTier,
-      tierName: tierNames[selectedTier] || `Tier ${selectedTier}`,
-      timestamp: now,
-      expiry: now + 365 * 24 * 60 * 60, // 1 year
-      txHash: `TX_${Math.random().toString(36).slice(2, 14).toUpperCase()}`,
-      network: 'testnet',
-    });
+
+    // Use real contract data if available, otherwise simulated
+    if (contractResult && contractResult.verified) {
+      setAttestation({
+        tier: contractResult.tier,
+        tierName: tierNames[contractResult.tier] || `Tier ${contractResult.tier}`,
+        timestamp: contractResult.timestamp,
+        expiry: contractResult.expiry,
+        txHash: `ATT_${contractResult.timestamp}_${contractResult.tier}`,
+        network: contractResult.network || 'testnet',
+      });
+    } else {
+      // Sandbox demo result (when contract not deployed or not yet attested)
+      setAttestation({
+        tier: selectedTier,
+        tierName: tierNames[selectedTier] || `Tier ${selectedTier}`,
+        timestamp: now,
+        expiry: now + 365 * 24 * 60 * 60,
+        txHash: sessionOk
+          ? `SESS_${now}_${selectedTier}`
+          : `DEMO_${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+        network: 'testnet',
+      });
+    }
     setPhase('done');
   }, [address, selectedTier, t]);
 

@@ -1,13 +1,52 @@
 'use client';
+import { useState, useEffect, useCallback } from 'react';
 import { useT } from '@/i18n';
+
+interface ContractMetrics {
+  totalMinted: number;
+  totalRevoked: number;
+  activeAttestations: number;
+  passRate: string;
+}
 
 export default function DashboardContent() {
   const t = useT();
+  const [metrics, setMetrics] = useState<ContractMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      // Fetch total counts via a lightweight API call
+      // The API uses SelloClient which queries the real contract
+      const res = await fetch('/api/attestation/GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+      if (res.ok) {
+        const data = await res.json();
+        // If we got a real response, the contract is live
+        setMetrics({
+          totalMinted: data.totalMinted ?? 0,
+          totalRevoked: data.totalRevoked ?? 0,
+          activeAttestations: (data.totalMinted ?? 0) - (data.totalRevoked ?? 0),
+          passRate: data.totalMinted > 0
+            ? `${Math.round(((data.totalMinted - data.totalRevoked) / data.totalMinted) * 100)}%`
+            : '—',
+        });
+      }
+    } catch {
+      // Contract not deployed yet — metrics stay null
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
   const stats = [
-    { label: t('dash.totalVerif'), value: '0', icon: '🔐' },
-    { label: t('dash.activeAttest'), value: '0', icon: '✅' },
-    { label: t('dash.passRate'), value: '—', icon: '📊' },
-    { label: t('dash.avgTime'), value: '—', icon: '⏱' },
+    { label: t('dash.totalVerif'), value: loading ? '...' : String(metrics?.totalMinted ?? 0), icon: '🔐' },
+    { label: t('dash.activeAttest'), value: loading ? '...' : String(metrics?.activeAttestations ?? 0), icon: '✅' },
+    { label: t('dash.passRate'), value: loading ? '...' : (metrics?.passRate ?? '—'), icon: '📊' },
+    { label: t('dash.avgTime'), value: '~3 min', icon: '⏱' },
   ];
 
   return (

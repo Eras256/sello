@@ -4,15 +4,15 @@
  * Implements the official Stellar MPP charge pattern:
  * https://developers.stellar.org/docs/build/agentic-payments/mpp/charge-guide
  *
- * When MPP env vars are configured, endpoints using this middleware will
- * require a Stellar USDC micropayment before serving the response.
- * When env vars are missing, the middleware logs a warning and passes through.
+ * When MPP env vars are configured and the mppx package is installed,
+ * endpoints using this middleware will require a Stellar USDC micropayment
+ * before serving the response.
+ *
+ * When env vars are missing or packages not installed, the middleware logs a
+ * warning and passes through (dev/staging mode).
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { Mppx, Store } from 'mppx/server';
-import { stellar } from '@stellar/mpp/charge/server';
-import { USDC_SAC_TESTNET } from '@stellar/mpp';
 
 // ── Augmented Express Request ──────────────────────────────────────
 declare global {
@@ -25,12 +25,52 @@ declare global {
   }
 }
 
+// ── Dynamic MPP imports ────────────────────────────────────────────
+// These packages may not be installed yet (stellar MPP spec is emerging).
+// We use dynamic imports to avoid crashing the server at startup.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Mppx: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Store: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let stellarCharge: any = null;
+let USDC_SAC_TESTNET: string = '';
+let mppModulesLoaded = false;
+
+async function loadMppModules(): Promise<boolean> {
+  if (mppModulesLoaded) return Mppx !== null;
+
+  mppModulesLoaded = true;
+  try {
+    const mppx = await import('mppx/server');
+    Mppx = mppx.Mppx;
+    Store = mppx.Store;
+
+    const mppCharge = await import('@stellar/mpp/charge/server');
+    stellarCharge = mppCharge.stellar?.charge;
+
+    const mppConst = await import('@stellar/mpp');
+    USDC_SAC_TESTNET = mppConst.USDC_SAC_TESTNET || '';
+
+    console.log('[SELLO MPP] ✅ MPP modules loaded');
+    return true;
+  } catch {
+    console.warn(
+      '[SELLO MPP] ⚠️  MPP packages (mppx, @stellar/mpp) not installed. ' +
+      'Install them when Stellar publishes the official SDK: ' +
+      'npm install mppx @stellar/mpp'
+    );
+    return false;
+  }
+}
+
 // ── Lazy-loaded MPP instance ───────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mppInstance: any = null;
 let mppInitAttempted = false;
 
-function getMppInstance() {
+async function getMppInstance() {
   if (mppInitAttempted) return mppInstance;
   mppInitAttempted = true;
 
@@ -42,11 +82,14 @@ function getMppInstance() {
     return null;
   }
 
+  const loaded = await loadMppModules();
+  if (!loaded) return null;
+
   try {
     mppInstance = Mppx.create({
       secretKey: MPP_SECRET_KEY,
       methods: [
-        stellar.charge({
+        stellarCharge({
           recipient: RECIPIENT,
           currency: USDC_SAC_TESTNET,
           network: 'stellar:testnet',
@@ -95,7 +138,7 @@ function toWebRequest(req: Request, port: number): globalThis.Request {
  */
 export function createMppChargeHandler(amount: string, description: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const mpp = getMppInstance();
+    const mpp = await getMppInstance();
 
     // If MPP is not configured, pass through (dev mode)
     if (!mpp) {

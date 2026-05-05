@@ -164,58 +164,62 @@ export class SelloClient {
 
   /**
    * Get the configuration for a specific tier.
+   * Queries the TierRegistry contract on-chain. Falls back to static
+   * data only when the contract is not yet deployed.
    *
    * @param tier - Tier ID (1-4)
    * @returns Tier configuration
    */
   async getTierConfig(tier: number): Promise<TierConfig> {
-    // For now, return static tier data
-    // In production, this would call the TierRegistry contract
-    const staticTiers: Record<number, TierConfig> = {
-      1: {
-        tier: 1,
-        name: 'Basic',
-        description: 'Email and phone verification',
-        requiredChecks: ['email', 'phone'],
-      },
-      2: {
-        tier: 2,
-        name: 'Standard',
-        description: 'Government ID and liveness check',
-        requiredChecks: ['email', 'phone', 'government_id', 'liveness'],
-      },
-      3: {
-        tier: 3,
-        name: 'Enhanced',
-        description: 'Proof of address and source of funds',
-        requiredChecks: [
-          'email',
-          'phone',
-          'government_id',
-          'liveness',
-          'proof_of_address',
-          'source_of_funds',
-        ],
-      },
-      4: {
-        tier: 4,
-        name: 'Business',
-        description: 'KYB — company registration and UBO declaration',
-        requiredChecks: [
-          'company_registration',
-          'ubo_declaration',
-          'director_id',
-          'proof_of_address',
-        ],
-      },
-    };
-
-    const config = staticTiers[tier];
-    if (!config) {
+    if (tier < 1 || tier > 4) {
       throw new Error(`Invalid tier: ${tier}. Must be 1-4.`);
     }
 
-    return config;
+    // Try real contract call if contract ID is set
+    if (this.tierRegistryContractId) {
+      try {
+        const contract = new StellarSdk.Contract(this.tierRegistryContractId);
+        const account = new StellarSdk.Account(
+          'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+          '0',
+        );
+
+        const tx = new StellarSdk.TransactionBuilder(account, {
+          fee: '100',
+          networkPassphrase: this.networkPassphrase,
+        })
+          .addOperation(
+            contract.call(
+              'get_tier_config',
+              StellarSdk.nativeToScVal(tier, { type: 'u32' }),
+            ),
+          )
+          .setTimeout(30)
+          .build();
+
+        const simResult = await this.server.simulateTransaction(tx);
+
+        if (
+          StellarSdk.rpc.Api.isSimulationSuccess(simResult) &&
+          simResult.result
+        ) {
+          const parsed = StellarSdk.scValToNative(simResult.result.retval);
+          return {
+            tier: Number(parsed.tier ?? tier),
+            name: String(parsed.name ?? `Tier ${tier}`),
+            description: String(parsed.description ?? ''),
+            requiredChecks: Array.isArray(parsed.required_checks)
+              ? parsed.required_checks.map(String)
+              : [],
+          };
+        }
+      } catch {
+        // Fall through to static data
+      }
+    }
+
+    // Fallback: static tier data (used when contract is not deployed)
+    return this.getStaticTierConfig(tier);
   }
 
   /**
@@ -224,7 +228,62 @@ export class SelloClient {
    * @returns Array of all tier configurations
    */
   async listTiers(): Promise<TierConfig[]> {
-    return Promise.all([1, 2, 3, 4].map((tier) => this.getTierConfig(tier)));
+    // Try real contract call if contract ID is set
+    if (this.tierRegistryContractId) {
+      try {
+        const contract = new StellarSdk.Contract(this.tierRegistryContractId);
+        const account = new StellarSdk.Account(
+          'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+          '0',
+        );
+
+        const tx = new StellarSdk.TransactionBuilder(account, {
+          fee: '100',
+          networkPassphrase: this.networkPassphrase,
+        })
+          .addOperation(contract.call('list_tiers'))
+          .setTimeout(30)
+          .build();
+
+        const simResult = await this.server.simulateTransaction(tx);
+
+        if (
+          StellarSdk.rpc.Api.isSimulationSuccess(simResult) &&
+          simResult.result
+        ) {
+          const parsed = StellarSdk.scValToNative(simResult.result.retval);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((t: Record<string, unknown>) => ({
+              tier: Number(t.tier ?? 0),
+              name: String(t.name ?? ''),
+              description: String(t.description ?? ''),
+              requiredChecks: Array.isArray(t.required_checks)
+                ? t.required_checks.map(String)
+                : [],
+            }));
+          }
+        }
+      } catch {
+        // Fall through to static data
+      }
+    }
+
+    return Promise.all([1, 2, 3, 4].map((tier) => this.getStaticTierConfig(tier)));
+  }
+
+  /**
+   * Static tier data fallback (used when contract is not deployed).
+   */
+  private getStaticTierConfig(tier: number): TierConfig {
+    const staticTiers: Record<number, TierConfig> = {
+      1: { tier: 1, name: 'Basic', description: 'Email and phone verification', requiredChecks: ['email', 'phone'] },
+      2: { tier: 2, name: 'Standard', description: 'Government ID and liveness check', requiredChecks: ['email', 'phone', 'government_id', 'liveness'] },
+      3: { tier: 3, name: 'Enhanced', description: 'Proof of address and source of funds', requiredChecks: ['email', 'phone', 'government_id', 'liveness', 'proof_of_address', 'source_of_funds'] },
+      4: { tier: 4, name: 'Business', description: 'KYB — company registration and UBO declaration', requiredChecks: ['company_registration', 'ubo_declaration', 'director_id', 'proof_of_address'] },
+    };
+    const config = staticTiers[tier];
+    if (!config) throw new Error(`Invalid tier: ${tier}. Must be 1-4.`);
+    return config;
   }
 
   /**
