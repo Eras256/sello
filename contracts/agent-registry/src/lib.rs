@@ -631,3 +631,5 @@ impl AgentRegistry {
             .ok_or(AgentError::AgentNotFound)
     }
 }
+
+mod test;

@@ -27,11 +27,38 @@ export async function POST(request: Request) {
       }
 
       const payload = JSON.parse(rawBody);
-      const { type, applicantId } = payload as { type?: string; applicantId?: string };
+      const { type, applicantId, externalUserId } = payload as { type?: string; applicantId?: string; externalUserId?: string };
 
-      if (type === 'applicantReviewed' && applicantId) {
-        // In production: check status, determine tier, call contract issue_attestation()
-        console.log(`[SELLO] Webhook received: ${type} for applicant ${applicantId}`);
+      if (type === 'applicantReviewed' && externalUserId) {
+        // Here externalUserId must be the Stellar wallet address passed during init
+        const walletAddress = externalUserId;
+        const tier = 2; // Default tier for Sumsub review
+        const expiry = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60); // 1 year
+        
+        console.log(`[SELLO] Webhook received: ${type} for applicant ${applicantId} (wallet: ${walletAddress})`);
+        
+        if (process.env.STELLAR_SECRET_KEY) {
+          try {
+            const SelloClient = (await import('@sello/sdk')).SelloClient;
+            const client = new SelloClient({
+              network: 'testnet',
+              rpcUrl: process.env.NEXT_PUBLIC_STELLAR_RPC_URL,
+              attestationContractId: process.env.NEXT_PUBLIC_CONTRACT_ATTESTATION_STORE,
+            });
+            
+            const txHash = await client.issueAttestation(
+              walletAddress, 
+              tier, 
+              expiry, 
+              process.env.STELLAR_SECRET_KEY
+            );
+            console.log(`[SELLO] Attestation issued successfully! TxHash: ${txHash}`);
+          } catch (e) {
+            console.error(`[SELLO] Failed to issue attestation on-chain:`, e);
+          }
+        } else {
+          console.error(`[SELLO] Cannot issue attestation: STELLAR_SECRET_KEY is missing`);
+        }
       }
 
       return NextResponse.json({ received: true });
@@ -39,7 +66,8 @@ export async function POST(request: Request) {
 
     // Development mode — accept without signature
     return NextResponse.json({ received: true, mode: 'development' });
-  } catch {
+  } catch (error) {
+    console.error('[SELLO] Webhook processing failed:', error);
     return NextResponse.json(
       { error: 'Webhook processing failed', code: 'WEBHOOK_ERROR' },
       { status: 500 }

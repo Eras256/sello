@@ -164,6 +164,54 @@ export class SelloClient {
   }
 
   /**
+   * Issue an attestation for a subject address.
+   * Note: This requires the client to be initialized with a secret key
+   * that corresponds to an authorized verifier on the contract.
+   */
+  async issueAttestation(
+    subjectAddress: string,
+    tier: number,
+    expiry: number,
+    verifierSecret: string
+  ): Promise<string> {
+    try {
+      const contract = new StellarSdk.Contract(this.attestationContractId);
+      const verifierKeypair = StellarSdk.Keypair.fromSecret(verifierSecret);
+      
+      const account = await this.server.getAccount(verifierKeypair.publicKey());
+      
+      const tx = new StellarSdk.TransactionBuilder(account, {
+        fee: '100000',
+        networkPassphrase: this.networkPassphrase,
+      })
+        .addOperation(
+          contract.call(
+            'issue_attestation',
+            new StellarSdk.Address(verifierKeypair.publicKey()).toScVal(),
+            new StellarSdk.Address(subjectAddress).toScVal(),
+            StellarSdk.nativeToScVal(tier, { type: 'u32' }),
+            StellarSdk.nativeToScVal(expiry, { type: 'u64' })
+          )
+        )
+        .setTimeout(30)
+        .build();
+
+      tx.sign(verifierKeypair);
+      
+      const sendRes = await this.server.sendTransaction(tx);
+      if (sendRes.status === 'ERROR') {
+        throw new Error(`Transaction failed: ${JSON.stringify(sendRes.errorResult)}`);
+      }
+      
+      // We don't wait for completion here for simplicity in webhooks
+      return sendRes.hash;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to issue attestation: ${msg}`);
+    }
+  }
+
+  /**
    * Get the configuration for a specific tier.
    * Queries the TierRegistry contract on-chain. Falls back to static
    * data only when the contract is not yet deployed.

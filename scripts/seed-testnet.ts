@@ -56,8 +56,8 @@ async function main() {
     }
   }
 
-  // ── Section 2: Log attestation contract info ──────────────────
-  console.log('\n── Section 2: Contract Info ──────────────────────────');
+  // ── Section 2: Log and populate attestation contract info ──────────────────
+  console.log('\n── Section 2: Contract Info & Data Seeding ──────────────────────────');
   const attestationContract = process.env.CONTRACT_ATTESTATION_STORE;
   const tierRegistry = process.env.CONTRACT_TIER_REGISTRY;
 
@@ -72,6 +72,38 @@ async function main() {
     console.log(`  TierRegistry:     ${tierRegistry}`);
   } else {
     console.log('  ⚠️  CONTRACT_TIER_REGISTRY not set');
+  }
+
+  const verifierSecret = process.env.STELLAR_SECRET_KEY;
+  if (attestationContract && verifierSecret) {
+    console.log('\n  Seeding attestations for test accounts...');
+    try {
+      const { SelloClient } = await import('../packages/sdk/dist/index.js');
+      const client = new SelloClient({
+        network: 'testnet',
+        rpcUrl: RPC_URL,
+        attestationContractId: attestationContract,
+      });
+
+      // Issue attestations of different tiers
+      for (let i = 0; i < testAccounts.length; i++) {
+        const addr = testAccounts[i]!.keypair.publicKey();
+        const tier = (i % 4) + 1; // Tiers 1-4
+        const expiry = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60); // 1 year
+
+        console.log(`  Minting Tier ${tier} attestation for ${addr.slice(0, 8)}...`);
+        try {
+          const txHash = await client.issueAttestation(addr, tier, expiry, verifierSecret);
+          console.log(`    ✅ Success: ${txHash.slice(0, 15)}...`);
+        } catch (e) {
+          console.log(`    ⚠️ Failed: ${e}`);
+        }
+      }
+    } catch (e) {
+      console.log(`  ⚠️ SDK error: ${e}`);
+    }
+  } else {
+    console.log('\n  ⚠️ Skipping attestation seeding: missing STELLAR_SECRET_KEY');
   }
 
   // ── Section 3: MPP Recipient Setup ────────────────────────────
