@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@stellar/stellar-sdk':
+        specifier: ^15.1.0
+        version: 15.1.0
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.17
