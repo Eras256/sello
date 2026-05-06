@@ -17,8 +17,8 @@
     "seed:testnet": "npx tsx scripts/seed-testnet.ts",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
-    "ship": "pnpm --filter @sello/sdk build && vercel --prod",
-    "ship:preview": "pnpm --filter @sello/sdk build && vercel"
+    "ship": "cd apps/web && vercel --prod",
+    "ship:preview": "cd apps/web && vercel"
   },
   "engines": {
     "node": ">=20.0.0",
