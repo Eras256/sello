@@ -2,7 +2,7 @@
 
 import { useLanguage, type Locale } from '@/i18n/LanguageContext';
 
-const flags: Record<Locale, string> = { en: '🇺🇸', es: '🇪🇸' };
+const flags: Record<Locale, string> = { en: '🇺🇸', es: '🇲🇽' };
 const labels: Record<Locale, string> = { en: 'EN', es: 'ES' };
 
 export default function LanguageSelector() {

@@ -1,18 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useT } from '@/i18n';
 import LanguageSelector from './LanguageSelector';
 import WalletButton from './WalletButton';
 
 export function Navbar() {
   const t = useT();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <nav className="navbar" id="main-nav">
       <div className="navbar-inner">
         <a href="/" className="navbar-logo" id="nav-logo">
           SELLO<span className="dot"></span>
         </a>
-        <ul className="navbar-links" id="nav-links">
+        <ul className={`navbar-links ${isMenuOpen ? 'open' : ''}`} id="nav-links" onClick={() => setIsMenuOpen(false)}>
           <li><a href="/">{t('nav.home')}</a></li>
           <li><a href="/verify">{t('nav.verify')}</a></li>
           <li><a href="/explorer">{t('nav.explorer')}</a></li>
@@ -24,8 +27,13 @@ export function Navbar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector />
           <WalletButton />
-          <button className="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
-            ☰
+          <button 
+            className="mobile-menu-btn" 
+            id="mobile-menu-toggle" 
+            aria-label="Toggle navigation menu"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? '✕' : '☰'}
           </button>
         </div>
       </div>
